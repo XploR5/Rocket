@@ -1,6 +1,7 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
 #[macro_use] extern crate rocket;
+use chrono::{DateTime, Utc};
 use rocket_contrib::json::Json;
 use std::collections::HashMap;
 use postgres::{Client, NoTls};
@@ -15,8 +16,16 @@ struct Data {
     performance: i32
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct CreateDataRequest {
+    plant_id: Vec<i32>,
+    start_date: String,
+    end_date: String,
+    interval: i64,
+}
+
 #[post("/createdata")]
-fn create_data() -> Json<HashMap<&'static str, &'static str>> {
+fn _create_data() -> Json<HashMap<&'static str, &'static str>> {
     let mut client = Client::connect("postgres://postgres:password@localhost/testing_db", NoTls).unwrap();
 
     for _ in 0..10 {
@@ -35,6 +44,33 @@ fn create_data() -> Json<HashMap<&'static str, &'static str>> {
     map.insert("status", "success");
     Json(map)
 }
+
+#[post("/createdata", format = "json", data = "<request>")]
+fn create_data(request: Json<CreateDataRequest>) -> Json<HashMap<&'static str, &'static str>> {
+    let client = Client::connect("postgres://postgres:password@localhost/testing_db", NoTls).unwrap();
+
+    for plant in request.plant_id.iter() {
+        let start_datetime = DateTime::parse_from_rfc3339(&request.start_date)
+            .unwrap()
+            .with_timezone(&Utc);
+        let end_datetime = DateTime::parse_from_rfc3339(&request.end_date)
+            .unwrap()
+            .with_timezone(&Utc);
+        let interval_duration = chrono::Duration::minutes(request.interval);
+
+        print!("plant: {}, st_dt: {}, end_dt: {}, int: {} \n\n",*plant, start_datetime, end_datetime, interval_duration )
+
+        // create_and_insert_data(*plant, start_datetime, end_datetime, interval_duration, &client)
+        //     .await
+        //     .unwrap();
+    }
+
+    let mut map = HashMap::new();
+    map.insert("status", "success");
+    Json(map)
+}
+
+
 
 fn main() {
     rocket::ignite().mount("/", routes![create_data]).launch();
