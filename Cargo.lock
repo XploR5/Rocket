@@ -1152,6 +1152,7 @@ dependencies = [
  "chrono",
  "fastrand",
  "postgres",
+ "rand",
  "rocket 0.4.11",
  "rocket_contrib",
  "serde",
